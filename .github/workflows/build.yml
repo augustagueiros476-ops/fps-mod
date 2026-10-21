@@ -1,0 +1,24 @@
+name: Build libmod_menu.so
+on: [workflow_dispatch, push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baixar dependências
+        run: |
+          mkdir -p third_party
+          git clone --depth 1 https://github.com/ocornut/imgui third_party/imgui
+          git clone --depth 1 https://github.com/jmpews/Dobby third_party/Dobby
+      - name: Compilar (arm64 e armv7)
+        run: |
+          for ABI in arm64-v8a armeabi-v7a; do
+            cmake -B build-$ABI -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+              -DANDROID_ABI=$ABI -DANDROID_PLATFORM=android-24 -DCMAKE_BUILD_TYPE=Release
+            cmake --build build-$ABI -j
+            mkdir -p out/$ABI && cp build-$ABI/libmod_menu.so out/$ABI/
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libmod_menu
+          path: out/
